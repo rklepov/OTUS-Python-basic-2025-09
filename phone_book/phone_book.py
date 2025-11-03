@@ -45,7 +45,7 @@ def create_contact(
 
 
 def find_contact(
-    phone_book: PhoneBook, search_for: str, lookup_field: str | None = None
+    phone_book: PhoneBook, search_for: str, lookup_field: str = ''
 ) -> PhoneBook:
     search_result: PhoneBook = {}
     for id, contact in phone_book.items():
@@ -116,16 +116,33 @@ def prompt_save_file_option() -> bool:
 
 def prompt_save_dirty_option() -> bool:
     print_header('Контакты были изменены')
-    return prompt_save_file_option()
 
 
-def prompt_contact_id() -> int | None:
-    print('Введите ID контакта')
-    if contact_id := input('> ').strip():
-        if contact_id.isdigit():
-            return int(contact_id)
+def prompt_for_number(prompt_text: str) -> int | None:
+    print(prompt_text)
+    if number := input('> ').strip():
+        if number.isdigit():
+            return int(number)
 
     return None
+
+
+def prompt_for_string(prompt_text: str) -> str:
+    print(prompt_text)
+    return input('> ').strip()
+
+
+def prompt_lookup_field_option() -> str | None:
+    print_header('Выберете поле для поиска')
+
+    options = [
+        ('Имя', 'name'),
+        ('Телефон', 'phone_number'),
+        ('Комментарий', 'comment'),
+        ('* любое поле', ''),
+    ]
+
+    return prompt_selection(options)
 
 
 def command_open(*, file_path: Path, dirty_flag: bool, **kwargs):
@@ -182,6 +199,21 @@ def command_create_contact(*, phone_book: PhoneBook, **kwargs):
 
 
 def command_find_contact(*, phone_book: PhoneBook, **kwargs):
+    print_header('Найти контакт')
+    print()
+
+    if (lookup_field := prompt_lookup_field_option()) is not None:
+        print()
+        search_for = prompt_for_string('Введите строку для поиска')
+        matching_contacts: PhoneBook = find_contact(
+            phone_book, search_for, lookup_field
+        )
+        print()
+        print_header(
+            f'Найденные контакты ({len(matching_contacts)} из {len(phone_book)}):'
+        )
+        show_contacts(matching_contacts)
+
     return {**kwargs, 'phone_book': phone_book}
 
 
@@ -196,7 +228,9 @@ def command_update_contact(*, phone_book: PhoneBook, **kwargs):
 def command_delete_contact(*, phone_book: PhoneBook, dirty_flag: bool, **kwargs):
     print_header('Удалить контакт')
 
-    if (contact_id := prompt_contact_id()) and (contact_id in phone_book.keys()):
+    if (contact_id := prompt_for_number('Введите ID контакта')) and (
+        contact_id in phone_book.keys()
+    ):
         deleted_contact, phone_book = delete_contact(phone_book, contact_id)
         dirty_flag = True
         print()
