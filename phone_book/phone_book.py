@@ -119,6 +119,15 @@ def prompt_save_dirty_option() -> bool:
     return prompt_save_file_option()
 
 
+def prompt_contact_id() -> int | None:
+    print('Введите ID контакта')
+    if contact_id := input('> ').strip():
+        if contact_id.isdigit():
+            return int(contact_id)
+
+    return None
+
+
 def command_open(*, file_path: Path, dirty_flag: bool, **kwargs):
     if dirty_flag and prompt_save_dirty_option():
         print()
@@ -184,11 +193,20 @@ def command_update_contact(*, phone_book: PhoneBook, **kwargs):
     }
 
 
-def command_delete_contact(*, phone_book: PhoneBook, **kwargs):
+def command_delete_contact(*, phone_book: PhoneBook, dirty_flag: bool, **kwargs):
+    print_header('Удалить контакт')
+
+    if (contact_id := prompt_contact_id()) and (contact_id in phone_book.keys()):
+        deleted_contact, phone_book = delete_contact(phone_book, contact_id)
+        dirty_flag = True
+        print()
+        print_header('Контакт удалён')
+        print_contact(contact_id, deleted_contact)
+
     return {
         **kwargs,
         'phone_book': phone_book,
-        'dirty_flag': True,
+        'dirty_flag': dirty_flag,
     }
 
 
