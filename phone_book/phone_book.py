@@ -27,16 +27,13 @@ def load_contacts(file_path: Path) -> PhoneBook:
 
 def save_contacts(file_path: Path, phone_book: PhoneBook) -> None:
     with open(file_path, 'w') as file:
-        json.dump(phone_book, file, ensure_ascii=False, indent=4)
+        json.dump(phone_book, file, ensure_ascii=False, indent=2)
 
 
 def show_contacts(phone_book: PhoneBook) -> None:
-    print(f'Контакты ({len(phone_book)}):')
-    print('-' * 80)
     for id, contact in phone_book.items():
-        print('-' * 80)
         print_contact(id, contact)
-    print('-' * 80)
+        print('-' * 80)
 
 
 def create_contact(
@@ -71,6 +68,17 @@ def delete_contact(phone_book: PhoneBook, id: Id) -> tuple[Contact, PhoneBook]:
     return (deleted_contact, phone_book)
 
 
+def print_header(text: str) -> None:
+    print(f'{text.capitalize()}')
+    print('{0:-<{1}}'.format('', len(text)))
+
+
+def prefer_relative_path(path: Path, other: Path) -> Path:
+    if (abs_path := path.absolute()).is_relative_to(other):
+        return abs_path.relative_to(other)
+    return abs_path
+
+
 def prompt_selection(menu: list[str, Any]) -> Any:
     for n, (prompt, _) in enumerate(menu):
         print(f'({n + 1}): {prompt}')
@@ -87,23 +95,56 @@ def prompt_selection(menu: list[str, Any]) -> Any:
 
 
 def prompt_file_path_or_default(default_path: Path) -> Path:
-    relative_path = default_path.relative_to(Path.cwd())
+    relative_path = prefer_relative_path(default_path, Path.cwd())
 
-    if file_path := input(f'Введите имя файла ({relative_path}): ').strip():
-        return file_path
+    print(f'Введите имя файла ({relative_path})')
+
+    if file_path := input('> ').strip():
+        return Path(file_path)
 
     return default_path
 
 
+def prompt_save_file_option() -> bool:
+    options = [
+        ('Сохранить изменения', True),
+        ('Продолжить без сохранения', False),
+    ]
+
+    return prompt_selection(options)
+
+
+def prompt_save_dirty_option() -> bool:
+    print_header('Контакты были изменены')
+    return prompt_save_file_option()
+
+
 def command_open(*, file_path: Path, dirty_flag: bool, **kwargs):
+    if dirty_flag and prompt_save_dirty_option():
+        print()
+        command_save(file_path=file_path, dirty_flag=dirty_flag, **kwargs)
+        print()
+
+    print_header('Загрузить телефонный справочник из файла')
+
+    file_path = prompt_file_path_or_default(file_path)
+    phone_book = load_contacts(file_path)
+
     return {
         **kwargs,
+        'phone_book': phone_book,
         'file_path': file_path,
         'dirty_flag': False,
     }
 
 
 def command_save(*, phone_book: PhoneBook, file_path: Path, **kwargs):
+    print_header('Сохранить телефонный справочник в файл')
+
+    file_path = prompt_file_path_or_default(file_path)
+
+    save_contacts(file_path, phone_book)
+
     return {
         **kwargs,
         'phone_book': phone_book,
@@ -113,7 +154,10 @@ def command_save(*, phone_book: PhoneBook, file_path: Path, **kwargs):
 
 
 def command_show_contacts(*, phone_book: PhoneBook, **kwargs):
+    print_header(f'Контакты ({len(phone_book)}):')
+
     show_contacts(phone_book)
+
     return {
         **kwargs,
         'phone_book': phone_book,
@@ -148,11 +192,26 @@ def command_delete_contact(*, phone_book: PhoneBook, **kwargs):
     }
 
 
-def command_exit(**kwargs):
+def command_exit(*, phone_book: PhoneBook, file_path: Path, dirty_flag: bool, **kwargs):
+    if dirty_flag and prompt_save_dirty_option():
+        print()
+        kwargs = command_save(
+            phone_book=phone_book, file_path=file_path, dirty_flag=dirty_flag, **kwargs
+        )
+    else:
+        kwargs = {
+            **kwargs,
+            'phone_book': phone_book,
+            'file_path': file_path,
+            'dirty_flag': dirty_flag,
+        }
+
+    print()
+
     return {**kwargs, 'stop': True}
 
 
-def main_menu():
+def main_menu(file_path: Path, dirty_flag: bool, count_contacts: int):
     main_menu = [
         ('Открыть из файла', command_open),
         ('Сохранить в файл', command_save),
@@ -164,8 +223,11 @@ def main_menu():
         ('Выход', command_exit),
     ]
 
-    print('Телефонный справочник')
-    print('---------------------')
+    print_header(
+        f'Телефонный справочник'
+        f' [{prefer_relative_path(file_path, Path.cwd())}{" *" if dirty_flag else ""}]'
+        f' ({count_contacts})'
+    )
 
     command = prompt_selection(main_menu)
 
@@ -178,9 +240,20 @@ def main():
     dirty_flag = False
     stop = False
 
+    if Path.exists(file_path):
+        try:
+            phone_book = load_contacts(file_path)
+        except OSError as e:
+            print(
+                '[WARN] Невозможно загрузить телефонный справочник из файла'
+                f' "{prefer_relative_path(file_path, Path.cwd())}":'
+                f' {e}'
+            )
+            print()
+
     while True:
         try:
-            command = main_menu()
+            command = main_menu(file_path, dirty_flag, len(phone_book))
             print()
 
             kwargs = {
@@ -203,7 +276,7 @@ def main():
             stop = True
 
         except Exception as e:
-            print(f'Ошибка ({e.__class__.__name__}): {e}')
+            print(f'Ошибка {e.__class__.__name__}: {e}')
             stop = False
 
         print()
