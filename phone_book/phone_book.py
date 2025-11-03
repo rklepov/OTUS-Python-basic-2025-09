@@ -1,6 +1,6 @@
 #!/bin/env python3
 #
-# address_book/address_book.py
+# phone_book/phone_book.py
 #
 
 import json
@@ -10,7 +10,7 @@ from typing import Any
 
 type Id = int
 type Contact = dict[str, Any]
-type AddressBook = dict[Id, Contact]
+type PhoneBook = dict[Id, Contact]
 
 
 def print_contact(id: Id, contact: Contact) -> None:
@@ -19,39 +19,39 @@ def print_contact(id: Id, contact: Contact) -> None:
         print(f'{field}: {value}')
 
 
-def load_contacts(file_path: Path) -> AddressBook:
+def load_contacts(file_path: Path) -> PhoneBook:
     with open(file_path) as file:
-        book: AddressBook = json.load(file)
+        book: PhoneBook = json.load(file)
         return {int(id): contact for id, contact in book.items()}
 
 
-def save_contacts(file_path: Path, address_book: AddressBook) -> None:
+def save_contacts(file_path: Path, phone_book: PhoneBook) -> None:
     with open(file_path, 'w') as file:
-        json.dump(address_book, file, ensure_ascii=False, indent=4)
+        json.dump(phone_book, file, ensure_ascii=False, indent=4)
 
 
-def show_contacts(address_book: AddressBook) -> None:
-    print(f'Контакты ({len(address_book)}):')
+def show_contacts(phone_book: PhoneBook) -> None:
+    print(f'Контакты ({len(phone_book)}):')
     print('-' * 80)
-    for id, contact in address_book.items():
+    for id, contact in phone_book.items():
         print('-' * 80)
         print_contact(id, contact)
     print('-' * 80)
 
 
 def create_contact(
-    address_book: AddressBook, contact: Contact
-) -> tuple[Contact, AddressBook]:
-    new_id: Id = 1 + (max(address_book.keys()) if len(address_book) > 0 else 0)
-    address_book[new_id] = contact
-    return (contact, address_book)
+    phone_book: PhoneBook, contact: Contact
+) -> tuple[Contact, PhoneBook]:
+    new_id: Id = 1 + (max(phone_book.keys()) if len(phone_book) > 0 else 0)
+    phone_book[new_id] = contact
+    return (contact, phone_book)
 
 
 def find_contact(
-    address_book: AddressBook, search_for: str, lookup_field: str | None = None
-) -> AddressBook:
-    search_result: AddressBook = {}
-    for id, contact in address_book.items():
+    phone_book: PhoneBook, search_for: str, lookup_field: str | None = None
+) -> PhoneBook:
+    search_result: PhoneBook = {}
+    for id, contact in phone_book.items():
         for field, value in contact.items():
             if not lookup_field or field == lookup_field:
                 if str(value).find(search_for) >= 0:
@@ -60,15 +60,15 @@ def find_contact(
 
 
 def update_contact(
-    address_book: AddressBook, id: Id, contact: Contact
-) -> tuple[Contact, AddressBook]:
-    address_book[id] = contact
-    return (contact, address_book)
+    phone_book: PhoneBook, id: Id, contact: Contact
+) -> tuple[Contact, PhoneBook]:
+    phone_book[id] = contact
+    return (contact, phone_book)
 
 
-def delete_contact(address_book: AddressBook, id: Id) -> tuple[Contact, AddressBook]:
-    deleted_contact: Contact = address_book.pop(id)
-    return (deleted_contact, address_book)
+def delete_contact(phone_book: PhoneBook, id: Id) -> tuple[Contact, PhoneBook]:
+    deleted_contact: Contact = phone_book.pop(id)
+    return (deleted_contact, phone_book)
 
 
 def prompt_selection(menu: list[str, Any]) -> Any:
@@ -86,7 +86,16 @@ def prompt_selection(menu: list[str, Any]) -> Any:
     return action
 
 
-def command_open(*, file_path: Path, **kwargs):
+def prompt_file_path_or_default(default_path: Path) -> Path:
+    relative_path = default_path.relative_to(Path.cwd())
+
+    if file_path := input(f'Введите имя файла ({relative_path}): ').strip():
+        return file_path
+
+    return default_path
+
+
+def command_open(*, file_path: Path, dirty_flag: bool, **kwargs):
     return {
         **kwargs,
         'file_path': file_path,
@@ -94,47 +103,47 @@ def command_open(*, file_path: Path, **kwargs):
     }
 
 
-def command_save(*, address_book: AddressBook, file_path: Path, **kwargs):
+def command_save(*, phone_book: PhoneBook, file_path: Path, **kwargs):
     return {
         **kwargs,
-        'address_book': address_book,
+        'phone_book': phone_book,
         'file_path': file_path,
         'dirty_flag': False,
     }
 
 
-def command_show_contacts(*, address_book: AddressBook, **kwargs):
-    show_contacts(address_book)
+def command_show_contacts(*, phone_book: PhoneBook, **kwargs):
+    show_contacts(phone_book)
     return {
         **kwargs,
-        'address_book': address_book,
+        'phone_book': phone_book,
     }
 
 
-def command_create_contact(*, address_book: AddressBook, **kwargs):
+def command_create_contact(*, phone_book: PhoneBook, **kwargs):
     return {
         **kwargs,
-        'address_book': address_book,
+        'phone_book': phone_book,
         'dirty_flag': True,
     }
 
 
-def command_find_contact(*, address_book: AddressBook, **kwargs):
-    return {**kwargs, 'address_book': address_book}
+def command_find_contact(*, phone_book: PhoneBook, **kwargs):
+    return {**kwargs, 'phone_book': phone_book}
 
 
-def command_update_contact(*, address_book: AddressBook, **kwargs):
+def command_update_contact(*, phone_book: PhoneBook, **kwargs):
     return {
         **kwargs,
-        'address_book': address_book,
+        'phone_book': phone_book,
         'dirty_flag': True,
     }
 
 
-def command_delete_contact(*, address_book: AddressBook, **kwargs):
+def command_delete_contact(*, phone_book: PhoneBook, **kwargs):
     return {
         **kwargs,
-        'address_book': address_book,
+        'phone_book': phone_book,
         'dirty_flag': True,
     }
 
@@ -164,7 +173,7 @@ def main_menu():
 
 
 def main():
-    address_book: AddressBook = {}
+    phone_book: PhoneBook = {}
     file_path: str = Path(__file__).resolve().parent / f'{Path(__file__).stem}.json'
     dirty_flag = False
     stop = False
@@ -175,7 +184,7 @@ def main():
             print()
 
             kwargs = {
-                'address_book': address_book,
+                'phone_book': phone_book,
                 'file_path': file_path,
                 'dirty_flag': dirty_flag,
                 'stop': stop,
@@ -184,8 +193,8 @@ def main():
             if not command:
                 continue
 
-            address_book, file_path, dirty_flag, stop = itemgetter(
-                'address_book', 'file_path', 'dirty_flag', 'stop'
+            phone_book, file_path, dirty_flag, stop = itemgetter(
+                'phone_book', 'file_path', 'dirty_flag', 'stop'
             )(command(**kwargs))
 
         except (KeyboardInterrupt, EOFError) as e:
