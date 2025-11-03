@@ -41,7 +41,7 @@ def create_contact(
 ) -> tuple[Contact, PhoneBook]:
     new_id: Id = 1 + (max(phone_book.keys()) if len(phone_book) > 0 else 0)
     phone_book[new_id] = contact
-    return (contact, phone_book)
+    return (new_id, phone_book)
 
 
 def find_contact(
@@ -60,7 +60,7 @@ def update_contact(
     phone_book: PhoneBook, id: Id, contact: Contact
 ) -> tuple[Contact, PhoneBook]:
     phone_book[id] = contact
-    return (contact, phone_book)
+    return (id, phone_book)
 
 
 def delete_contact(phone_book: PhoneBook, id: Id) -> tuple[Contact, PhoneBook]:
@@ -137,6 +137,20 @@ def prompt_for_string(prompt_text: str) -> str:
     return input('> ').strip()
 
 
+def prompt_new_contact_fields() -> Contact | None:
+    print('Введите имя')
+    if not (name := input('> ').strip()):
+        return
+
+    print('Введите номер телефона')
+    phone_number = input('> ').strip()
+
+    print('Введите комментарий')
+    comment = input('> ').strip()
+
+    return {'name': name, 'phone_number': phone_number, 'comment': comment}
+
+
 def prompt_lookup_field_option() -> str | None:
     print_header('Выберете поле для поиска')
 
@@ -195,11 +209,19 @@ def command_show_contacts(*, phone_book: PhoneBook, **kwargs):
     }
 
 
-def command_create_contact(*, phone_book: PhoneBook, **kwargs):
+def command_create_contact(*, phone_book: PhoneBook, dirty_flag: bool, **kwargs):
+    if contact := prompt_new_contact_fields():
+        contact_id, phone_book = create_contact(phone_book, contact)
+        dirty_flag = True
+        print()
+        print_header('Контакт создан')
+        print_contact(contact_id, phone_book[contact_id])
+        print('-' * 80)
+
     return {
         **kwargs,
         'phone_book': phone_book,
-        'dirty_flag': True,
+        'dirty_flag': dirty_flag,
     }
 
 
@@ -330,17 +352,18 @@ def main():
         except (KeyboardInterrupt, EOFError) as e:
             print()
             print(f'Исполнение прервано: {e.__class__.__name__}')
+            print()
             stop = True
 
         except Exception as e:
             print(f'Ошибка {e.__class__.__name__}: {e}')
             stop = False
 
-        print()
-
         if stop:
             print('Bye!')
             break
+
+        print()
 
 
 if __name__ == '__main__':
