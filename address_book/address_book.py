@@ -121,7 +121,6 @@ def command_find_contact(*, address_book: AddressBook, **kwargs):
 
 
 def command_update_contact(*, address_book: AddressBook, **kwargs):
-    raise ValueError('zys')
     return {
         **kwargs,
         'address_book': address_book,
@@ -165,26 +164,41 @@ def main():
     address_book: AddressBook = {}
     file_path: str = Path(__file__).resolve().parent / f'{Path(__file__).stem}.json'
     dirty_flag = False
+    stop = False
 
     while True:
-        command = main_menu()
-        print()
+        try:
+            command = main_menu()
+            print()
 
-        kwargs = {
-            'address_book': address_book,
-            'file_path': file_path,
-            'dirty_flag': dirty_flag,
-            'stop': False,
-        }
+            kwargs = {
+                'address_book': address_book,
+                'file_path': file_path,
+                'dirty_flag': dirty_flag,
+                'stop': stop,
+            }
 
-        if command:
+            if not command:
+                continue
+
             address_book, file_path, dirty_flag, stop = itemgetter(
                 'address_book', 'file_path', 'dirty_flag', 'stop'
             )(command(**kwargs))
 
-            if stop:
-                print('Bye!')
-                break
+        except (KeyboardInterrupt, EOFError) as e:
+            print()
+            print(f'Исполнение прервано: {e.__class__.__name__}')
+            stop = True
+
+        except Exception as e:
+            print(f'Ошибка ({e.__class__.__name__}): {e}')
+            stop = False
+
+        print()
+
+        if stop:
+            print('Bye!')
+            break
 
 
 if __name__ == '__main__':
