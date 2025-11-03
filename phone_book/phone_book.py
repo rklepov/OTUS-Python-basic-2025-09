@@ -105,7 +105,7 @@ def prompt_file_path_or_default(default_path: Path) -> Path:
     return default_path
 
 
-def prompt_save_file_option() -> bool:
+def prompt_save_file_option() -> bool | None:
     options = [
         ('Сохранить изменения', True),
         ('Продолжить без сохранения', False),
@@ -114,8 +114,13 @@ def prompt_save_file_option() -> bool:
     return prompt_selection(options)
 
 
-def prompt_save_dirty_option() -> bool:
+def prompt_repeat_save_dirty() -> bool:
     print_header('Контакты были изменены')
+
+    while (should_save := prompt_save_file_option()) is None:
+        print()
+
+    return should_save
 
 
 def prompt_for_number(prompt_text: str) -> int | None:
@@ -146,7 +151,7 @@ def prompt_lookup_field_option() -> str | None:
 
 
 def command_open(*, file_path: Path, dirty_flag: bool, **kwargs):
-    if dirty_flag and prompt_save_dirty_option():
+    if dirty_flag and prompt_repeat_save_dirty():
         print()
         command_save(file_path=file_path, dirty_flag=dirty_flag, **kwargs)
         print()
@@ -245,7 +250,7 @@ def command_delete_contact(*, phone_book: PhoneBook, dirty_flag: bool, **kwargs)
 
 
 def command_exit(*, phone_book: PhoneBook, file_path: Path, dirty_flag: bool, **kwargs):
-    if dirty_flag and prompt_save_dirty_option():
+    if dirty_flag and prompt_repeat_save_dirty():
         print()
         kwargs = command_save(
             phone_book=phone_book, file_path=file_path, dirty_flag=dirty_flag, **kwargs
