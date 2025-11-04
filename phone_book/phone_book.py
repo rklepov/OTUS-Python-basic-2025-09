@@ -36,9 +36,7 @@ def show_contacts(phone_book: PhoneBook) -> None:
         print('-' * 80)
 
 
-def create_contact(
-    phone_book: PhoneBook, contact: Contact
-) -> tuple[Contact, PhoneBook]:
+def create_contact(phone_book: PhoneBook, contact: Contact) -> tuple[Id, PhoneBook]:
     new_id: Id = 1 + (max(phone_book.keys()) if len(phone_book) > 0 else 0)
     phone_book[new_id] = contact
     return (new_id, phone_book)
@@ -58,7 +56,7 @@ def find_contact(
 
 def update_contact(
     phone_book: PhoneBook, id: Id, contact: Contact
-) -> tuple[Contact, PhoneBook]:
+) -> tuple[Id, PhoneBook]:
     phone_book[id] = contact
     return (id, phone_book)
 
@@ -79,7 +77,7 @@ def prefer_relative_path(path: Path, other: Path) -> Path:
     return abs_path
 
 
-def prompt_selection(menu: list[str, Any]) -> Any:
+def prompt_selection(menu: list[tuple[str, Any]]) -> Any:
     for n, (prompt, _) in enumerate(menu):
         print(f'({n + 1}): {prompt}')
 
@@ -140,7 +138,7 @@ def prompt_for_string(prompt_text: str) -> str:
 def prompt_new_contact_fields() -> Contact | None:
     print('Введите имя')
     if not (name := input('> ').strip()):
-        return
+        return None
 
     print('Введите номер телефона')
     phone_number = input('> ').strip()
@@ -340,9 +338,9 @@ def main_menu(file_path: Path, dirty_flag: bool, count_contacts: int):
     return command
 
 
-def main():
+def main() -> None:
     phone_book: PhoneBook = {}
-    file_path: str = Path(__file__).resolve().parent / f'{Path(__file__).stem}.json'
+    file_path: Path = Path(__file__).resolve().parent / f'{Path(__file__).stem}.json'
     dirty_flag = False
     stop = False
 
