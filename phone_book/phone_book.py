@@ -151,6 +151,22 @@ def prompt_new_contact_fields() -> Contact | None:
     return {'name': name, 'phone_number': phone_number, 'comment': comment}
 
 
+def prompt_update_contact_fields(contact: Contact) -> Contact:
+    print(f"Введите имя ('{contact['name']}')")
+    if not (name := input('> ').strip()):
+        name = contact['name']
+
+    print(f"Введите номер телефона ('{contact['phone_number']}')")
+    if not (phone_number := input('> ').strip()):
+        phone_number = contact['phone_number']
+
+    print(f"Введите комментарий ('{contact['comment']}')")
+    if not (comment := input('> ').strip()):
+        comment = contact['comment']
+
+    return {'name': name, 'phone_number': phone_number, 'comment': comment}
+
+
 def prompt_lookup_field_option() -> str | None:
     print_header('Выберете поле для поиска')
 
@@ -244,11 +260,22 @@ def command_find_contact(*, phone_book: PhoneBook, **kwargs):
     return {**kwargs, 'phone_book': phone_book}
 
 
-def command_update_contact(*, phone_book: PhoneBook, **kwargs):
+def command_update_contact(*, phone_book: PhoneBook, dirty_flag: bool, **kwargs):
+    if (contact_id := prompt_for_number('Введите ID контакта')) and (
+        contact_id in phone_book.keys()
+    ):
+        if contact := prompt_update_contact_fields(phone_book[contact_id]):
+            contact_id, phone_book = update_contact(phone_book, contact_id, contact)
+            dirty_flag = True
+            print()
+            print_header('Контакт изменён')
+            print_contact(contact_id, phone_book[contact_id])
+            print('-' * 80)
+
     return {
         **kwargs,
         'phone_book': phone_book,
-        'dirty_flag': True,
+        'dirty_flag': dirty_flag,
     }
 
 
