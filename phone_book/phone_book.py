@@ -355,8 +355,9 @@ def main() -> None:
             )
             print()
 
-    while True:
+    while not stop:
         try:
+            print()
             command = main_menu(file_path, dirty_flag, len(phone_book))
             print()
 
@@ -384,11 +385,7 @@ def main() -> None:
             print(f'Ошибка {e.__class__.__name__}: {e}')
             stop = False
 
-        if stop:
-            print('Bye!')
-            break
-
-        print()
+    print('Bye!')
 
 
 if __name__ == '__main__':
